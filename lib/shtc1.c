@@ -92,14 +92,14 @@ static uint16_t shtc1_cmd_measure = SHTC1_CMD_MEASURE_HPM;
  *          shtc1_sleep(); // cmd failed, go back to sleep
  * }, (ret)
  */
-#define PM_WAKE(ret, cmd)                                                      \
-    (((ret) = shtc1_wakeup())                                                  \
-         ? (ret) /* ret = STATUS_WAKEUP_FAILED */                              \
-         : (((ret) = (cmd))                                                    \
-            ? shtc1_sleep(),                                                   \
-            (ret) /* ret = cmd failed (ret != 0),                              \
-                     sensor potentially asleep */                              \
-            : (ret)) /* ret = STATUS_OK and sensor is awake */)
+//#define PM_WAKE_2(ret, cmd)                                                      \
+//    (((ret) = shtc1_wakeup())                                                  \
+//         ? (ret) /* ret = STATUS_WAKEUP_FAILED */                              \
+//         : (((ret) = (cmd))                                                    \
+//            ? shtc1_sleep(),                                                   \
+//            (ret) /* ret = cmd failed (ret != 0),                              \
+//                     sensor potentially asleep */                              \
+//            : (ret)) /* ret = STATUS_OK and sensor is awake */)
 
 static uint8_t supports_sleep = 1;
 static uint8_t sleep_enabled = 1;
@@ -127,7 +127,17 @@ static int16_t shtc1_wakeup() {
         return STATUS_WAKEUP_FAILED;
     return STATUS_OK;
 }
-
+static int16_t PM_WAKE(int16_t ret,int16_t cmd)
+{
+    (ret) = shtc1_wakeup();
+    if ((ret) == 0) 
+    {
+        (ret) = (cmd);
+        if ((ret) != 0)
+            shtc1_sleep(); // cmd failed, go back to sleep
+    }  
+		return ret;
+}
 int16_t shtc1_measure_blocking_read(int32_t *temperature, int32_t *humidity) {
     int16_t ret;
 
