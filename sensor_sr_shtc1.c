@@ -13,11 +13,6 @@
 #define SENSOR_HUMI_RANGE_MIN 20
 #define SENSOR_TEMP_RANGE_MAX 60
 #define SENSOR_TEMP_RANGE_MIN 5
-/**
- * TO USE CONSOLE OUTPUT (PRINTF) AND WAIT (SLEEP) PLEASE ADAPT THEM TO YOUR
- * PLATFORM
- */
-
 
 static rt_size_t _shtc1_polling_get_data(rt_sensor_t sensor, struct rt_sensor_data *data)
 {
@@ -37,6 +32,7 @@ static rt_size_t _shtc1_polling_get_data(rt_sensor_t sensor, struct rt_sensor_da
             data->timestamp = rt_sensor_get_ts();
         } else {
              LOG_W("error reading measurement\n"); 
+             return 0;
         }
 
     }
@@ -54,10 +50,12 @@ static rt_size_t _shtc1_polling_get_data(rt_sensor_t sensor, struct rt_sensor_da
             data->timestamp = rt_sensor_get_ts();
         } else {
              LOG_W("error reading measurement\n"); 
+             return 0;
         }
     }
     else
     {
+        LOG_E("only RT_SENSOR_CLASS_TEMP,RT_SENSOR_CLASS_HUMI could get");
         return 0;			
     }
     return 1;
@@ -71,18 +69,85 @@ static rt_size_t _shtc1_fetch_data(struct rt_sensor_device *sensor, void *buf, r
         return _shtc1_polling_get_data(sensor, buf);
     }
     else
+    {
+        LOG_E("only RT_SENSOR_MODE_POLLING could get");
         return 0;
+    }
+        
 }
-
+static rt_err_t _shtc1_get_id(rt_sensor_t sensor, uint16_t * args)
+{
+    if(shtc1_getid(args)==0)
+    {
+        LOG_E("shtc1_getid error");
+        return -RT_ERROR;
+    }
+    return RT_EOK;
+}
+static rt_err_t _shtc1_set_POWER(rt_sensor_t sensor, rt_uint32_t args)
+{
+    if(args==RT_SENSOR_POWER_LOW||args==RT_SENSOR_POWER_NORMAL)
+    {
+        /* Always set the power mode after setting the configuration */
+        if(args==RT_SENSOR_POWER_LOW)
+        {
+            shtc1_enable_low_power_mode(1);
+        }
+        else if(args==RT_SENSOR_POWER_NORMAL)
+        {
+            shtc1_enable_low_power_mode(0);
+        }
+        else
+        {
+            LOG_E("only RT_SENSOR_POWER_LOW,RT_SENSOR_POWER_NORMAL could set");
+            return -RT_ERROR;
+        }
+    }
+    else if (args==RT_SENSOR_POWER_DOWN)
+    {
+        return -RT_ERROR;
+    }
+    else
+    {
+        LOG_E("only RT_SENSOR_POWER_LOW,RT_SENSOR_POWER_NORMAL could set");
+        return -RT_ERROR;
+    }
+    return RT_EOK;
+}
 static rt_err_t _shtc1_control(struct rt_sensor_device *sensor, int cmd, void *args)
 {
-    return -RT_ERROR;
+    rt_err_t result = RT_EOK;
+    switch (cmd)
+    {
+    case RT_SENSOR_CTRL_GET_ID:
+        result = _shtc1_get_id(sensor, args);
+        break;
+    // case RT_SENSOR_CTRL_SET_RANGE:
+    //     result = -RT_ERROR;
+    //     break;
+    // case RT_SENSOR_CTRL_SET_ODR:
+    //     result = -RT_ERROR;
+    //     break;
+    case RT_SENSOR_CTRL_SET_MODE:
+        break;
+    case RT_SENSOR_CTRL_SET_POWER:
+        result = _shtc1_set_POWER(sensor,(rt_uint32_t)args & 0xff);
+        break;
+    // case RT_SENSOR_CTRL_SELF_TEST:
+    //     result = -RT_ERROR;
+//        break;
+    default:
+        LOG_E("only RT_SENSOR_CTRL_GET_ID,RT_SENSOR_CTRL_SET_POWER could set");
+        return -RT_ERROR;
+    }
+    return result;
 }
 static struct rt_sensor_ops sensor_ops =
 {
     _shtc1_fetch_data,
     _shtc1_control
 };
+
 int rt_hw_shtc1_init(const char *name, struct rt_sensor_config *cfg)
 {
     rt_int8_t result;
@@ -102,14 +167,18 @@ int rt_hw_shtc1_init(const char *name, struct rt_sensor_config *cfg)
             rt_thread_delay(500);
             if (shtc1_probe() != STATUS_OK) 
             {
-            LOG_W("SHT sensor probing failed\n"); 
-            return -RT_ERROR;
+                LOG_E("SHT sensor probing failed\n"); 
+                return -RT_ERROR;
             }
         }
 
         sensor_temp = rt_calloc(1, sizeof(struct rt_sensor_device));
         if (sensor_temp == RT_NULL)
-                return -RT_ERROR;
+        {
+            LOG_E("rt_calloc failed\n"); 
+            return -RT_ERROR;
+        }
+                
 
         sensor_temp->info.type       = RT_SENSOR_CLASS_TEMP;
         sensor_temp->info.vendor     = RT_SENSOR_VENDOR_SENSIRION;
@@ -132,7 +201,11 @@ int rt_hw_shtc1_init(const char *name, struct rt_sensor_config *cfg)
 
         sensor_humi = rt_calloc(1, sizeof(struct rt_sensor_device));
         if (sensor_humi == RT_NULL)
-                goto __exit;
+        {
+            LOG_E("rt_calloc failed\n"); 
+            goto __exit;
+        }
+
 
         sensor_humi->info.type       = RT_SENSOR_CLASS_HUMI;
         sensor_humi->info.vendor     = RT_SENSOR_VENDOR_SENSIRION;
@@ -154,7 +227,6 @@ int rt_hw_shtc1_init(const char *name, struct rt_sensor_config *cfg)
         }
 
     }
-    
 
     LOG_I("shtc1_sensor init success");
     return RT_EOK;
