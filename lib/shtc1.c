@@ -162,6 +162,17 @@ int16_t shtc1_read(int32_t *temperature, int32_t *humidity) {
     return PM_SLEEP(ret);
 }
 
+int16_t shtc1_getid(uint16_t *buf){
+    int16_t ret;
+
+    (void)shtc1_wakeup(); /* Try to wake up the sensor, ignore return value */
+    ret = sensirion_i2c_delayed_read_cmd(SHTC1_ADDRESS, SHTC1_CMD_READ_ID_REG,
+                                         SHTC1_CMD_DURATION_USEC, buf, 1);
+    if (ret)
+        return ret;
+    (*buf)=(*buf)&0x003f;
+    return 1;
+}
 int16_t shtc1_probe(void) {
     uint16_t id;
     int16_t ret;

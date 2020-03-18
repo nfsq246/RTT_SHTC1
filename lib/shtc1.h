@@ -55,7 +55,12 @@ extern "C" {
 #define STATUS_UNKNOWN_DEVICE (-3)
 #define STATUS_WAKEUP_FAILED (-4)
 #define STATUS_SLEEP_FAILED (-5)
-
+/**
+ * get shtc1 id 
+ *bits 5 to 0: SHTC1-specific product code
+ * @return 0 if a sensor was detected or return 1
+ */
+int16_t shtc1_getid(uint16_t *buf);
 /**
  * Detects if a sensor is connected by reading out the ID register.
  * If the sensor does not answer or if the answer is not the expected value,
@@ -135,7 +140,6 @@ int16_t shtc1_read_serial(uint32_t *serial);
  *
  * @return Driver version string
  */
-const char *shtc1_get_driver_version(void);
 
 /**
  * Returns the configured SHT3x address.
