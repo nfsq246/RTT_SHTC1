@@ -109,7 +109,7 @@ static rt_err_t _shtc1_set_POWER(rt_sensor_t sensor, rt_uint32_t args)
     }
     else
     {
-        LOG_E("only RT_SENSOR_POWER_LOW,RT_SENSOR_POWER_NORMAL could set");
+//        LOG_E("only RT_SENSOR_POWER_LOW,RT_SENSOR_POWER_NORMAL could set");
         return -RT_ERROR;
     }
     return RT_EOK;
@@ -137,7 +137,7 @@ static rt_err_t _shtc1_control(struct rt_sensor_device *sensor, int cmd, void *a
     //     result = -RT_ERROR;
 //        break;
     default:
-        LOG_E("only RT_SENSOR_CTRL_GET_ID,RT_SENSOR_CTRL_SET_POWER could set");
+//        LOG_E("only RT_SENSOR_CTRL_GET_ID,RT_SENSOR_CTRL_SET_POWER could set");
         return -RT_ERROR;
     }
     return result;
